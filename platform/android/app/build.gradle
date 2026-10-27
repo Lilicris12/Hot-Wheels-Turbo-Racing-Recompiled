@@ -1,0 +1,74 @@
+// Android app shell. The native code is the repository's root CMake project; SDL's Java
+// glue is taken from the same SDL release the native build fetches.
+
+plugins {
+    id 'com.android.application'
+}
+
+def sdlVersion = '2.30.3'
+def sdlDir = layout.buildDirectory.dir("sdl/SDL2-${sdlVersion}")
+
+tasks.register('fetchSdlJava') {
+    def archive = layout.buildDirectory.file("sdl/SDL2-${sdlVersion}.tar.gz")
+    outputs.dir(sdlDir)
+    doLast {
+        def archiveFile = archive.get().asFile
+        archiveFile.parentFile.mkdirs()
+        if (!archiveFile.exists()) {
+            new URL("https://github.com/libsdl-org/SDL/releases/download/release-${sdlVersion}/SDL2-${sdlVersion}.tar.gz")
+                .withInputStream { i -> archiveFile.withOutputStream { it << i } }
+        }
+        copy {
+            from tarTree(resources.gzip(archiveFile))
+            into archiveFile.parentFile
+        }
+    }
+}
+
+android {
+    namespace 'io.github.hwtrrecomp'
+    compileSdk 34
+    ndkVersion '27.0.12077973'
+
+    defaultConfig {
+        applicationId 'io.github.hwtrrecomp'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_shared', "-DHWTR_ROM=${rootDir}/../../hwtr.us.z64"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('../../../CMakeLists.txt')
+            version '3.22.1+'
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs += [sdlDir.map { it.dir('android-project/app/src/main/java') }]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+preBuild.dependsOn 'fetchSdlJava'
