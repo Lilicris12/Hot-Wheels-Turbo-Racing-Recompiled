@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Checks that run without the ROM: tool syntax and config validity.
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Byte-compile tools
+        run: python -m py_compile tools/*.py
+      - name: Validate TOML configs
+        run: |
+          python - <<'PY'
+          import tomllib
+          for f in ["hwtr.us.toml", "aspMain.us.toml", "symbols/names.toml", "symbols/hwtr.syms.toml"]:
+              tomllib.load(open(f, "rb"))
+              print("ok", f)
+          PY
+      - name: Tool unit tests
+        run: python tools/tests/test_tools.py
+
+  # Full builds need the ROM. Set the HWTR_ROM_URL repository secret to a private download
+  # URL of your own dump to enable them. Build artifacts contain recompiled game code: keep
+  # them private.
+  build:
+    needs: tools
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            name: linux-x64
+          - os: windows-2022
+            name: windows-x64
+          - os: macos-14
+            name: macos-arm64
+    runs-on: ${{ matrix.os }}
+    env:
+      HWTR_ROM_URL: ${{ secrets.HWTR_ROM_URL }}
+    steps:
+      - name: Check for ROM secret
+        id: rom
+        shell: bash
+        run: |
+          if [ -z "$HWTR_ROM_URL" ]; then
+            echo "HWTR_ROM_URL is not set; skipping the build."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.rom.outputs.available == 'true'
+        with:
+          submodules: recursive
+
+      - name: Fetch ROM
+        if: steps.rom.outputs.available == 'true'
+        shell: bash
+        run: |
+          curl -sSfL "$HWTR_ROM_URL" -o hwtr.us.z64
+          python3 tools/rom_info.py hwtr.us.z64
+
+      - name: Install Linux dependencies
+        if: steps.rom.outputs.available == 'true' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang lld libsdl2-dev libgtk-3-dev libdbus-1-dev
+
+      - name: Install macOS dependencies
+        if: steps.rom.outputs.available == 'true' && runner.os == 'macOS'
+        run: brew install ninja sdl2
+
+      - name: Set up MSVC environment
+        if: steps.rom.outputs.available == 'true' && runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        if: steps.rom.outputs.available == 'true'
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+          else
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          fi
+
+      - name: Build
+        if: steps.rom.outputs.available == 'true'
+        run: cmake --build build --config Release --parallel
+
+      - name: Package (Linux AppImage)
+        if: steps.rom.outputs.available == 'true' && runner.os == 'Linux'
+        run: |
+          DESTDIR=AppDir cmake --install build --prefix /usr
+          curl -sSfLO https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20240109-1/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run --appdir AppDir --output appimage
+          mkdir -p dist && mv *.AppImage dist/
+
+      - name: Package (Windows / macOS)
+        if: steps.rom.outputs.available == 'true' && runner.os != 'Linux'
+        shell: bash
+        run: cmake --install build --prefix dist
+
+      - uses: actions/upload-artifact@v4
+        if: steps.rom.outputs.available == 'true'
+        with:
+          name: HotWheelsTurboRecompiled-${{ matrix.name }}
+          path: dist/
+          retention-days: 7

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.hwtrrecomp</id>
+  <name>Hot Wheels Turbo Racing: Recompiled</name>
+  <summary>Native port of Hot Wheels Turbo Racing built with static recompilation</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <description>
+    <p>A native build of the Nintendo 64 game Hot Wheels Turbo Racing, produced by statically
+    recompiling the game's MIPS code to C and running it on N64ModernRuntime with the RT64
+    renderer. Requires your own copy of the USA ROM.</p>
+  </description>
+  <launchable type="desktop-id">io.github.hwtrrecomp.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+</component>

@@ -1,0 +1,22 @@
+# RSPRecomp configuration for the audio microcode (aspMain) used by the n_audio/libmus
+# driver in Hot Wheels Turbo Racing (USA).
+#
+# The text immediately follows rspboot (0x800E7AA0, 0xD0 bytes) in the main segment:
+#   vram 0x800E7B70 -> rom 0x88770, size 0xC60 (ends where the F3DEX text starts)
+# The data (DMEM image) is at vram 0x800FCD20 / rom 0x9D920 and begins with the audio
+# command jump table used for the extra indirect branch targets below.
+
+text_offset = 0x88770
+text_size = 0xC60
+text_address = 0x04001080
+rom_file_path = "hwtr.us.z64"
+output_file_path = "rsp/aspMain.cpp"
+output_function_name = "aspMain"
+
+# Audio command handlers from the DMEM jump table (entries 0x0000 and 0x02B0 are unused
+# commands that point outside the microcode text).
+# IMEM addresses (RSPRecomp masks addresses to 13 bits).
+extra_indirect_branch_targets = [
+    0x10EC, 0x139C, 0x119C, 0x1A64, 0x11C8, 0x17EC, 0x1208,
+    0x127C, 0x1348, 0x1248, 0x1C84, 0x12D4, 0x1384,
+]

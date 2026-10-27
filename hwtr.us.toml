@@ -1,0 +1,37 @@
+# N64Recomp configuration for Hot Wheels Turbo Racing (USA) (NHWE).
+# Paths are relative to this file.
+
+[input]
+entrypoint = 0x80060400
+symbols_file_path = "symbols/hwtr.syms.toml"
+# Place your own legally obtained ROM here (it is gitignored). See BUILDING.md.
+rom_file_path = "hwtr.us.z64"
+output_func_path = "RecompiledFuncs"
+functions_per_output_file = 64
+
+[patches]
+stubs = []
+
+# Implemented natively in src/game (see the comments there).
+ignored = [
+    "hwtr_osPfsInitPak",
+    "hwtr_osPfsFreeBlocks",
+    "hwtr_osPfsAllocateFile",
+    "hwtr_osPfsDeleteFile",
+    "hwtr_osPfsFileState",
+    "hwtr_osPfsFindFile",
+    "hwtr_osPfsReadWriteFile",
+    "hwtr_osPfsNumFiles",
+    "hwtr_osPfsRepairId",
+    "hwtr_osPfsChecker",
+    "hwtr_osPfsIsPlug",
+]
+
+# The idle thread lowers itself to priority 0 and then spins forever polling a hook
+# pointer (0x801455B4) that nothing in the game ever sets. ultramodern schedules game
+# threads cooperatively, so a thread that never blocks would starve every other thread.
+# Turn the loop head into a jump-to-self, which N64Recomp emits as pause_self().
+[[patches.instruction]]
+func = "idle_thread_entry"
+vram = 0x800CD5B8
+value = 0x0803356E # lui $v0, 0x8014 -> j 0x800CD5B8

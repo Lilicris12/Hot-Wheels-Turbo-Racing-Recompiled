@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Hot Wheels Turbo Racing: Recompiled
+Comment=Native PC port of Hot Wheels Turbo Racing via static recompilation
+Exec=HotWheelsTurboRecompiled %f
+Icon=io.github.hwtrrecomp
+Terminal=false
+Categories=Game;
+Keywords=racing;n64;recomp;

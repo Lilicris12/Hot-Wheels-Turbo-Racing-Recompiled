@@ -1,0 +1,38 @@
+# Manually identified symbols for Hot Wheels Turbo Racing (USA).
+# These override names produced by signature matching (tools/sigmatch.py).
+# Format: "0xVRAM" = "name"
+
+[names]
+# libultra functions the signature database does not cover for this library version.
+"0x800E2E60" = "osInitialize"         # sets SR/FPCSR, probes PIF ROM, falls into createSpeedParam
+"0x800E3FD0" = "osInvalICache"        # cache 0x10 (Hit_Invalidate_I) loop
+"0x800DFB70" = "osViGetNextFramebuffer"
+"0x800E36DC" = "send_mesg"            # exceptasm.s internals, ignored by N64Recomp
+"0x800E3798" = "handle_CpU"
+
+# Game functions.
+"0x800CD524" = "idle_thread_entry"    # creates the main thread, then spins polling a hook pointer
+"0x80078A34" = "main_thread_entry"
+"0x800D5560" = "nuScCreateScheduler"  # likely NuSystem; called as (OS_VI_NTSC_LAN1, 1), indexes osViModeTable
+
+# Prefer the public names over the internal aliases the signatures matched.
+"0x800DDA10" = "bcopy"
+"0x800DDD30" = "bzero"
+"0x800E40D0" = "bcmp"
+"0x800DCB20" = "sqrtf"
+"0x800DCB30" = "cosf"
+"0x800DD870" = "sinf"
+
+# Controller Pak (osPfs) API. The runtime only stubs these as "no pak", so they are renamed
+# here, ignored in hwtr.us.toml, and implemented by src/game/controller_pak.cpp.
+"0x800E1900" = "hwtr_osPfsInitPak"
+"0x800E16F0" = "hwtr_osPfsFreeBlocks"
+"0x800E0900" = "hwtr_osPfsAllocateFile"
+"0x800E0D30" = "hwtr_osPfsDeleteFile"
+"0x800E1390" = "hwtr_osPfsFileState"
+"0x800E1530" = "hwtr_osPfsFindFile"
+"0x800E0F50" = "hwtr_osPfsReadWriteFile"
+"0x800E1800" = "hwtr_osPfsNumFiles"
+"0x800E1BD0" = "hwtr_osPfsRepairId"
+"0x800E5270" = "hwtr_osPfsChecker"
+"0x800E5990" = "hwtr_osPfsIsPlug"
